@@ -4,7 +4,9 @@ module.exports = function(grunt){
 	//Time how long tasks take. Can help when optimizing build times
 	require('time-grunt')(grunt);
 	//Automatically load required Grunt tasks
-	require('jit-grunt')(grunt);
+	require('jit-grunt')(grunt, {
+    useminPrepare: 'grunt-usemin'
+  });
 
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
@@ -22,6 +24,59 @@ module.exports = function(grunt){
 				]
 			}
 		},
+
+		useminPrepare: {
+        html: 'app/menu.html',
+        options: {
+            dest: 'dist'
+        }
+    },
+      // Concat
+    concat: {
+        options: {
+            separator: ';'
+        },
+        // dist configuration is provided by useminPrepare
+        dist: {}
+    },
+      // Uglify
+    uglify: {
+        // dist configuration is provided by useminPrepare
+        dist: {}
+    },
+    cssmin: {
+        dist: {}
+    },
+      // Filerev
+    filerev: {
+        options: {
+            encoding: 'utf8',
+            algorithm: 'md5',
+            length: 20
+        },
+        release: {
+            // filerev:release hashes(md5) all assets (images, js and css )
+            // in dist directory
+            files: [{
+                src: [
+                    'dist/scripts/*.js',
+                    'dist/styles/*.css',
+                ]
+            }]
+        }
+    },
+      // Usemin
+      // Replaces all assets with their revved version in html and css files.
+      // options.assetDirs contains the directories for finding the assets
+      // according to their relative paths
+    usemin: {
+        html: ['dist/*.html'],
+        css: ['dist/styles/*.css'],
+        options: {
+            assetsDirs: ['dist', 'dist/styles']
+        }
+    },
+
 		copy: {
 	      dist: {
 	        cwd: 'app',
@@ -49,6 +104,50 @@ module.exports = function(grunt){
 	          ]
 	        }
 	    },
+		watch: {
+	        copy: {
+	            files: [ 'app/**', '!app/**/*.css', '!app/**/*.js'],
+	            tasks: [ 'build' ]
+	        },
+	        scripts: {
+	            files: ['app/scripts/app.js'],
+	            tasks:[ 'build']
+	        },
+	        styles: {
+	            files: ['app/styles/mystyles.css'],
+	            tasks:['build']
+	        },
+	        livereload: {
+	            options: {
+	                livereload: '<%= connect.options.livereload %>'
+	            },
+	            files: [
+	                'app/{,*/}*.html',
+	                '.tmp/styles/{,*/}*.css',
+	                'app/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'
+	            ]
+	      	}	
+    },
+    connect: {
+      options: {
+        port: 9000,
+        // Change this to '0.0.0.0' to access the server from outside.
+        hostname: 'localhost',
+        livereload: 35729
+      },
+      dist: {
+        options: {
+          open: true,
+          base:{
+               path: 'dist',
+            options: {
+                index: 'menu.html',
+                maxAge: 300000
+            }
+          }
+        }
+      }
+    },
 	    clean: {
 	        build:{
 	            src: [ 'dist/']
@@ -57,11 +156,19 @@ module.exports = function(grunt){
 	});
 
 	grunt.registerTask('build', [
-	    'clean',
-	    'jshint',
-	    'copy'
-	  ]);
-	grunt.registerTask('build', ['jshint']);
+    'clean',
+    'jshint',
+    'useminPrepare',
+    'concat',
+    'cssmin',
+    'uglify',
+    'copy',
+    'filerev',
+    'usemin'
+  ]);
+
+	grunt.registerTask('serve',['build','connect:dist','watch']);
+	
 	grunt.registerTask('default',['build']);
 
 };
